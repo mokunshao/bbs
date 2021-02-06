@@ -1,0 +1,83 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 和 java mapper 的类名一样，从包名开始打，有自动补全-->
+<mapper namespace="kybmig.ssm.mapper.UserMapper">
+    <!-- resultType 和 mapper 中的方法返回值一样，不能省，从包名开始打，有自动补全-->
+    <!--  里面的 sql 语句，有自动补全,要配置 ide 的 datasource -->
+    <select id="selectAllUser" resultType="kybmig.ssm.model.UserModel">
+        SELECT *
+        FROM ssm.User
+    </select>
+
+    <!-- 传参数方式1，直接传入一个基本类型 int，这个 int 会被绑定到 ${id} -->
+    <select id="selectUser" resultType="kybmig.ssm.model.UserModel">
+        SELECT username, password, id
+        FROM ssm.User
+        WHERE id = ${id}
+    </select>
+
+    <select id="selectOneByUsername" resultType="kybmig.ssm.model.UserModel">
+        SELECT *
+        FROM ssm.User
+        WHERE username = #{username}
+    </select>
+
+    <!-- 传参方式2，传入一个对象。content 代表这个对象的 content 属性，注意这个对象要有 getter setter -->
+    <!-- useGeneratedKeys keyProperty 当我传入一个对象的时候，这两个属性可以把数据库创建的 id 赋值给这个对象 -->
+    <insert id="insertUser" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ssm.User (username, password, role)
+        VALUES (#{username}, #{password}, #{role})
+    </insert>
+
+    <update id="updateUser">
+        UPDATE ssm.User
+        SET username = #{username},
+            password =#{password}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteUser">
+        DELETE
+        FROM ssm.User
+        WHERE id = #{id}
+    </delete>
+
+    <update id="changePassword">
+        UPDATE ssm.User
+        SET password = #{password}
+        WHERE id = #{id}
+          AND password = #{oldPassword}
+    </update>
+
+    <resultMap id="kybmig.ssm.mapper.UserMapper.userInfo" type="kybmig.ssm.model.UserModel">
+        <id property="id" column="id"/>
+        <result property="username" column="username"/>
+        <collection property="topicList" ofType="kybmig.ssm.model.TopicModel">
+            <id property="id" column="tId"/>
+            <result property="title" column="tTitle"/>
+        </collection>
+        <collection property="commentList" ofType="kybmig.ssm.model.TopicCommentModel">
+            <id property="id" column="tcId"/>
+            <result property="content" column="tcContent"/>
+            <result property="topicId" column="tcTopicId"/>
+        </collection>
+    </resultMap>
+
+    <select id="getUserInfoById" resultMap="kybmig.ssm.mapper.UserMapper.userInfo">
+        SELECT u.id,
+               u.username,
+               t.id       as tId,
+               t.title    as tTitle,
+               tc.id      as tcId,
+               tc.content as tcContent,
+               tc.topicId as tcTopicId
+        FROM ssm.User as u
+                     LEFT join ssm.TopicComment as tc
+                on tc.userId = u.id
+                     LEFT JOIN ssm.Topic as t
+                ON t.userId = u.id
+        WHERE u.id = ${id}
+        limit 10
+    </select>
+</mapper>

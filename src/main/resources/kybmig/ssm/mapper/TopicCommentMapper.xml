@@ -1,0 +1,110 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 和 java mapper 的类名一样，从包名开始打，有自动补全-->
+<mapper namespace="kybmig.ssm.mapper.TopicCommentMapper">
+    <!-- resultType 和 mapper 中的方法返回值一样，不能省，从包名开始打，有自动补全-->
+    <!--  里面的 sql 语句，有自动补全,要配置 ide 的 datasource -->
+    <select id="selectAllTopicComment" resultType="kybmig.ssm.model.TopicCommentModel">
+        SELECT *
+        FROM ssm.TopicComment
+    </select>
+
+
+    <select id="selectAllTopicCommentByTopicId" resultType="kybmig.ssm.model.TopicCommentModel">
+        SELECT *
+        FROM ssm.TopicComment
+        where topicId = #{topicId}
+    </select>
+
+    <resultMap id="selectTopicCommentWithUser" type="kybmig.ssm.model.TopicCommentModel">
+        <id property="id" column="id"/>
+        <result property="content" column="content"/>
+        <result property="createdTime" column="createdTime"/>
+        <result property="updatedTime" column="updatedTime"/>
+        <result property="userId" column="userId"/>
+        <association property="user" javaType="kybmig.ssm.model.UserModel">
+            <id property="id" column="userId"/>
+            <result property="username" column="username"/>
+        </association>
+        <association property="topic" javaType="kybmig.ssm.model.TopicModel">
+            <id property="id" column="topicId"/>
+            <result property="title" column="topicTitle"/>
+        </association>
+    </resultMap>
+
+    <!-- 传参数方式1，直接传入一个基本类型 int，这个 int 会被绑定到 ${id} -->
+    <select id="selectTopicComment" resultMap="kybmig.ssm.mapper.TopicCommentMapper.selectTopicCommentWithUser">
+        SELECT TopicComment.*,
+               User.username
+        FROM TopicComment
+                     left join User
+                on TopicComment.userId = User.id
+        where TopicComment.topicId = ${id};
+    </select>
+
+    <!--    <select id="selectTopicComment" resultType="kybmig.ssm.model.TopicCommentModel">-->
+    <!--        SELECT *-->
+    <!--        FROM ssm.TopicComment-->
+    <!--        WHERE id = ${id}-->
+    <!--    </select>-->
+
+    <!-- 传参方式2，传入一个对象。content 代表这个对象的 content 属性，注意这个对象要有 getter setter -->
+    <!-- useGeneratedKeys keyProperty 当我传入一个对象的时候，这两个属性可以把数据库创建的 id 赋值给这个对象 -->
+    <insert id="insertTopicComment" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ssm.TopicComment (content, userId, topicId, createdTime, updatedTime)
+        VALUES (#{content}, #{userId}, #{topicId}, #{createdTime}, #{updatedTime})
+    </insert>
+
+    <update id="updateTopicComment">
+        UPDATE ssm.TopicComment
+        SET content    = #{content},
+            updatedTime=#{updatedTime}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteTopicComment">
+        DELETE
+        FROM ssm.TopicComment
+        WHERE id = #{id}
+    </delete>
+
+    <resultMap id="commentsWithTopicInfo" type="kybmig.ssm.model.TopicCommentModel">
+        <id property="id" column="id"/>
+        <result property="content" column="content"/>
+        <result property="createdTime" column="createdTime"/>
+        <result property="updatedTime" column="updatedTime"/>
+        <result property="userId" column="userId"/>
+        <collection property="topic" ofType="kybmig.ssm.model.TopicModel">
+            <id property="id" column="topicId"/>
+            <result property="title" column="topicTitle"/>
+        </collection>
+    </resultMap>
+
+    <select id="findSomeCommentsByUserId" resultMap="commentsWithTopicInfo">
+        SELECT *,
+               Topic.title as topicTitle
+        FROM ssm.TopicComment
+                     left join Topic
+                on TopicComment.topicId = Topic.id
+        where TopicComment.userId = ${userId}
+        order by TopicComment.createdTime desc
+        limit #{limit}
+    </select>
+
+    <select id="findTopicCommentsByUserId" resultMap="selectTopicCommentWithUser">
+        SELECT User.username,
+               User.id     as userId,
+               Topic.title as topicTitle,
+               TopicComment.topicId,
+               TopicComment.content,
+               TopicComment.createdTime
+        FROM ssm.User
+                     left join TopicComment
+                on TopicComment.userId = User.id
+                     left join Topic
+                on Topic.id = TopicComment.topicId
+        where User.id = #{userId}
+        order by TopicComment.createdTime desc
+    </select>
+</mapper>
